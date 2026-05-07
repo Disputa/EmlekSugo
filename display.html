@@ -4,12 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EmlékSúgó Display</title>
-    <script type="module" crossorigin src="/assets/display-DMyfn4Nc.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/event-BzTtig8A.js">
-    <link rel="stylesheet" crossorigin href="/assets/display-Cu43n_6m.css">
+    <script type="module" src="/src/display.js"></script>
   </head>
   <body>
     <div id="app">
+      <div id="windowControls" aria-label="Ablak vezérlők">
+        <button id="displayMinimizeBtn" class="window-control-btn" type="button" title="Tálcára rejtés">_</button>
+        <button id="displayToggleWindowBtn" class="window-control-btn" type="button" title="Ablak / teljes képernyő">□</button>
+        <button id="displayCloseBtn" class="window-control-btn close" type="button" title="Bezárás">×</button>
+      </div>
+
       <div id="topbar">
         <div>
           <div id="songTitle"></div>
@@ -19,6 +23,7 @@
       </div>
 
       <div id="showList"></div>
+      <div id="blockRail"></div>
 
       <div id="contentWrap">
         <div id="content"></div>

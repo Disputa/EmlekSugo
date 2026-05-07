@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "display",
-    "emlek-sugo-display"
+    "emlek-sugo-display",
+    "emlek-sugo-help"
   ],
   "permissions": [
     "core:default",

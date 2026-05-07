@@ -1,13 +1,13 @@
-import { defineConfig } from "vite";
 import { resolve } from "path";
 
-export default defineConfig({
+export default {
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
         display: resolve(__dirname, "display.html"),
+        help: resolve(__dirname, "help.html"),
       },
     },
   },
-});
+};

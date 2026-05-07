@@ -1,8 +1,8 @@
 [package]
 name = "app"
-version = "2.0.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "2.5.4"
+description = "EmlékSúgó desktop súgórendszer"
+authors = ["Deme Gábor"]
 license = ""
 repository = ""
 edition = "2021"

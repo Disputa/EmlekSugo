@@ -1,15 +1,30 @@
 
+import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
+import "./display.css";
+import splashImage from "./nyitokep.png";
+
+const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
 
 const els = {
+  app: document.getElementById("app"),
+  displayMinimizeBtn: document.getElementById("displayMinimizeBtn"),
+  displayToggleWindowBtn: document.getElementById("displayToggleWindowBtn"),
+  displayCloseBtn: document.getElementById("displayCloseBtn"),
   songTitle: document.getElementById("songTitle"),
   role: document.getElementById("role"),
   overlay: document.getElementById("overlay"),
   showList: document.getElementById("showList"),
+  blockRail: document.getElementById("blockRail"),
   contentWrap: document.getElementById("contentWrap"),
   content: document.getElementById("content"),
   transportHud: document.getElementById("transportHud"),
 };
+
+if (els.app) {
+  els.app.style.setProperty("--display-bg-image", `url("${splashImage}")`);
+  els.app.classList.toggle("preview-mode", isPreview);
+}
 
 const runtime = {
   frameId: null,
@@ -22,8 +37,14 @@ const runtime = {
   activeRole: "",
   blockIndex: 1,
   blockCount: 1,
+  lastScrollBlockIndex: 1,
   textStyle: {
     fontSize: 42,
+    offsetX: 0,
+    offsetY: 0,
+  },
+  roleStyle: {
+    fontSize: 52,
     offsetX: 0,
     offsetY: 0,
   },
@@ -48,7 +69,7 @@ function setOverlay(text) {
 
 function renderShowList(titles = [], currentIndex = 0, visible = false) {
   els.showList.style.display = visible ? "block" : "none";
-  els.contentWrap.style.left = visible ? "408px" : "24px";
+  els.contentWrap.classList.toggle("has-show-list", visible);
 
   if (!visible) return;
 
@@ -69,6 +90,47 @@ function renderShowList(titles = [], currentIndex = 0, visible = false) {
   });
 }
 
+function renderBlockRail(blocks = [], activeIndex = 0) {
+  if (!els.blockRail) return;
+  const hasBlocks = Array.isArray(blocks) && blocks.length > 1;
+  els.blockRail.style.display = hasBlocks ? "block" : "none";
+  els.contentWrap.classList.toggle("has-block-rail", hasBlocks);
+  if (!hasBlocks) {
+    els.blockRail.innerHTML = "";
+    return;
+  }
+
+  els.blockRail.innerHTML = `
+    <div class="block-rail-title">BLOKKOK</div>
+    <div class="block-rail-list">
+      ${blocks.map((block, index) => `
+        <button class="rail-block ${index === activeIndex ? "active" : ""}" data-index="${index}">
+          <span class="rail-block-index">${index + 1}</span>
+          <span class="rail-block-body">
+            <strong>${escapeHtml(block.role || "")}</strong>
+            <span>${escapeHtml(block.text || "")}</span>
+          </span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+
+  els.blockRail.querySelectorAll(".rail-block").forEach((btn) => {
+    btn.addEventListener("pointerup", async (event) => {
+      event.preventDefault();
+      const idx = Number(btn.dataset.index);
+      if (!Number.isInteger(idx)) return;
+      await selectBlockFromRail(idx);
+    });
+  });
+}
+
+async function selectBlockFromRail(index) {
+  await Promise.allSettled([
+    emit("display:select-block", { index }),
+    emit("display:transport", { action: "select-block", value: index }),
+  ]);
+}
 
 function applyTextStyle() {
   const fontSize = Math.max(16, Number(runtime.textStyle?.fontSize) || 42);
@@ -77,6 +139,15 @@ function applyTextStyle() {
 
   els.content.style.setProperty("--display-font-size", `${fontSize}px`);
   els.contentWrap.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+}
+
+function applyRoleStyle() {
+  const fontSize = Math.max(18, Number(runtime.roleStyle?.fontSize) || 52);
+  const offsetX = Number(runtime.roleStyle?.offsetX) || 0;
+  const offsetY = Number(runtime.roleStyle?.offsetY) || 0;
+
+  els.role.style.fontSize = `${fontSize}px`;
+  els.role.style.transform = `translate(calc(-50% + ${offsetX}px), ${offsetY}px)`;
 }
 
 function updateTransform() {
@@ -113,6 +184,18 @@ function renderScrollBlocks(blocks) {
       </section>
     `)
     .join('<div class="separator"></div>');
+}
+
+function getScrollTopForBlock(index) {
+  const sections = Array.from(els.content.querySelectorAll(".scroll-block"));
+  if (!sections.length) return 0;
+  const safeIndex = Math.max(0, Math.min(index, sections.length - 1));
+  return sections[safeIndex]?.offsetTop || 0;
+}
+
+function clampScrollPosition() {
+  const maxScroll = Math.max(0, els.content.scrollHeight - els.contentWrap.clientHeight);
+  runtime.scrollPos = Math.max(0, Math.min(maxScroll, runtime.scrollPos));
 }
 
 function startScroll(direction = "up") {
@@ -182,7 +265,17 @@ function renderTransportHud() {
   });
 }
 
+async function invokeWindowCommand(command) {
+  if (isPreview) return;
+  try {
+    await invoke(command);
+  } catch (err) {
+    console.warn(`Ablakparancs sikertelen (${command}):`, err);
+  }
+}
+
 function renderState(payload) {
+  const previousBlockIndex = runtime.blockIndex;
   const {
     songTitle,
     role,
@@ -199,6 +292,7 @@ function renderState(payload) {
     blockIndex,
     blockCount,
     textStyle,
+    roleStyle,
   } = payload;
 
   runtime.mode = mode || "blocks";
@@ -213,12 +307,19 @@ function renderState(payload) {
     offsetX: Number(textStyle?.offsetX) || 0,
     offsetY: Number(textStyle?.offsetY) || 0,
   };
+  runtime.roleStyle = {
+    fontSize: Number(roleStyle?.fontSize) || 52,
+    offsetX: Number(roleStyle?.offsetX) || 0,
+    offsetY: Number(roleStyle?.offsetY) || 0,
+  };
 
   els.songTitle.textContent = songTitle || "";
   els.role.textContent = runtime.mode === "blocks" ? (role || "") : (runtime.activeRole || "");
   renderShowList(showListTitles || [], currentItemIndex || 0, !!showListVisible);
+  renderBlockRail(runtime.blocks, runtime.blockIndex - 1);
   renderTransportHud();
   applyTextStyle();
+  applyRoleStyle();
 
   clearScrollAnimation();
 
@@ -242,20 +343,18 @@ function renderState(payload) {
     : [{ role: role || "", text: fullText || text || "" }];
 
   const nextKey = `scroll:${songTitle || ""}:${normalizedBlocks.map((b) => `${b.role}::${b.text}`).join("||")}`;
-  if (runtime.contentKey !== nextKey) {
+  const contentChanged = runtime.contentKey !== nextKey;
+  if (contentChanged) {
     runtime.scrollPos = runtime.mode === "scroll-down" ? 999999 : 0;
     runtime.contentKey = nextKey;
   }
 
   renderScrollBlocks(normalizedBlocks);
 
-  const maxScroll = Math.max(0, els.content.scrollHeight - els.contentWrap.clientHeight);
-  if (runtime.mode === "scroll-down" && runtime.scrollPos > maxScroll) {
-    runtime.scrollPos = maxScroll;
+  if (contentChanged || previousBlockIndex !== runtime.blockIndex) {
+    runtime.scrollPos = getScrollTopForBlock(runtime.blockIndex - 1);
   }
-  if (runtime.mode === "scroll-up" && runtime.scrollPos < 0) {
-    runtime.scrollPos = 0;
-  }
+  clampScrollPosition();
 
   updateTransform();
   updateRoleFromScroll();
@@ -273,10 +372,35 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
-listen("display:block", (event) => {
-  renderState(event.payload || {});
+if (!isPreview) {
+  listen("display:block", (event) => {
+    renderState(event.payload || {});
+  }).catch((err) => console.warn("Display event listener hiba:", err));
+
+  listen("display:overlay", (event) => {
+    setOverlay(event.payload?.text || "");
+  }).catch((err) => console.warn("Display overlay listener hiba:", err));
+
+  emit("display:request-state", {}).catch((err) => console.warn("Display allapotkeres hiba:", err));
+}
+
+window.addEventListener("message", (event) => {
+  if (event.data?.source !== "emleksugo-main") return;
+  if (event.data.type === "display:block") {
+    renderState(event.data.payload || {});
+  }
+  if (event.data.type === "display:overlay") {
+    setOverlay(event.data.payload?.text || "");
+  }
 });
 
-listen("display:overlay", (event) => {
-  setOverlay(event.payload?.text || "");
-});
+els.displayMinimizeBtn?.addEventListener("click", () => invokeWindowCommand("es_window_minimize"));
+els.displayToggleWindowBtn?.addEventListener("click", () => invokeWindowCommand("es_window_toggle"));
+els.displayCloseBtn?.addEventListener("click", () => invokeWindowCommand("es_window_close"));
+
+if (isPreview) {
+  window.parent?.postMessage({
+    source: "emleksugo-display-preview",
+    type: "display:ready",
+  }, "*");
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "EmlékSúgó 2.0_FIX",
-  "version": "2.0.0",
+  "productName": "EmlékSúgó",
+  "version": "2.5.4",
   "identifier": "com.demegabor.emleksugo",
   "build": {
     "frontendDist": "../dist",

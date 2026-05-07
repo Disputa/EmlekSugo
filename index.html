@@ -4,9 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EmlékSúgó</title>
-    <script type="module" crossorigin src="/assets/main-D235LGMW.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/event-BzTtig8A.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-BUQNVDYX.css">
+    <script type="module" src="/src/main.js"></script>
   </head>
   <body>
     <div id="splashScreen" class="splash-screen" style="background-image: linear-gradient(rgba(4,6,20,0.25), rgba(4,6,20,0.6)), url('/nyitokep.png'); background-size: cover; background-position: center center; background-repeat: no-repeat;">
@@ -22,6 +20,12 @@
     </div>
 
     <div id="appRoot" class="app hidden">
+      <div class="window-controls" aria-label="Ablak vezérlők">
+        <button id="mainMinimizeBtn" class="window-control-btn" type="button" title="Tálcára rejtés">_</button>
+        <button id="mainToggleWindowBtn" class="window-control-btn" type="button" title="Ablak / teljes képernyő">□</button>
+        <button id="mainCloseBtn" class="window-control-btn close" type="button" title="Bezárás">×</button>
+      </div>
+
       <aside class="sidebar">
         <h1>EmlékSúgó</h1>
         <div class="credit-box">
@@ -35,6 +39,7 @@
           <button id="loadLyricsBtn" type="button">Szövegkönyv betöltése (.txt/.docx)</button>
           <button id="saveProjectBtn" type="button">Projekt mentése</button>
           <button id="openProjectBtn" type="button">Projekt megnyitása</button>
+          <button id="openHelpBtn" type="button">Súgó megnyitása</button>
 
           <label for="playbackModeSelect">Display2 lejátszási mód</label>
           <select id="playbackModeSelect">
@@ -49,17 +54,41 @@
 
           <div class="small-label display-settings-title">Display2 megjelenés</div>
 
-          <label for="displayFontSizeRange">Display2 szövegméret</label>
-          <input id="displayFontSizeRange" type="range" min="28" max="80" step="1" value="42" />
-          <div id="displayFontSizeValue" class="small-note">42 px</div>
+          <label for="fontSizeRange">Display2 szövegméret</label>
+          <div class="dual-control-inputs">
+            <input id="fontSizeRange" type="range" min="16" max="96" step="1" value="42" />
+            <input id="fontSizeInput" type="number" min="16" max="96" step="1" value="42" />
+          </div>
+
+          <label for="offsetXRange">Display2 vízszintes eltolás</label>
+          <div class="dual-control-inputs">
+            <input id="offsetXRange" type="range" min="-400" max="400" step="5" value="0" />
+            <input id="offsetXInput" type="number" min="-400" max="400" step="5" value="0" />
+          </div>
+
+          <label for="offsetYRange">Display2 függőleges eltolás</label>
+          <div class="dual-control-inputs">
+            <input id="offsetYRange" type="range" min="-300" max="300" step="5" value="0" />
+            <input id="offsetYInput" type="number" min="-300" max="300" step="5" value="0" />
+          </div>
 
           <label for="roleFontSizeRange">Megszólaló név mérete</label>
-          <input id="roleFontSizeRange" type="range" min="26" max="72" step="1" value="44" />
-          <div id="roleFontSizeValue" class="small-note">44 px</div>
+          <div class="dual-control-inputs">
+            <input id="roleFontSizeRange" type="range" min="18" max="96" step="1" value="52" />
+            <input id="roleFontSizeInput" type="number" min="18" max="96" step="1" value="52" />
+          </div>
 
-          <label for="roleTopRange">Megszólaló név függőleges pozíciója</label>
-          <input id="roleTopRange" type="range" min="0" max="160" step="1" value="6" />
-          <div id="roleTopValue" class="small-note">6 px</div>
+          <label for="roleOffsetXRange">Megszólaló név vízszintes pozíciója</label>
+          <div class="dual-control-inputs">
+            <input id="roleOffsetXRange" type="range" min="-500" max="500" step="5" value="0" />
+            <input id="roleOffsetXInput" type="number" min="-500" max="500" step="5" value="0" />
+          </div>
+
+          <label for="roleOffsetYRange">Megszólaló név függőleges pozíciója</label>
+          <div class="dual-control-inputs">
+            <input id="roleOffsetYRange" type="range" min="-220" max="360" step="5" value="0" />
+            <input id="roleOffsetYInput" type="number" min="-220" max="360" step="5" value="0" />
+          </div>
 
           <label class="check-row"><input id="showListMainCheckbox" type="checkbox" checked /> <span>Műsorlista a főfelületen</span></label>
           <label class="check-row"><input id="showListDisplayCheckbox" type="checkbox" /> <span>Műsorlista a Display2-n</span></label>
@@ -82,7 +111,20 @@
             <div id="previewTitle" class="preview-title">-</div>
             <div id="previewRole" class="preview-role"></div>
           </div>
-          <div id="previewText" class="preview-text">Nincs betöltött blokk.</div>
+          <div id="displayPreview" class="display-preview-mini" aria-label="Display2 elo elonezet">
+            <div id="miniStage" class="mini-stage">
+              <div class="mini-top">
+                <div id="miniSongTitle" class="mini-song-title"></div>
+                <div id="miniRole" class="mini-role"></div>
+              </div>
+              <div id="miniShowList" class="mini-show-list"></div>
+              <div id="miniBlockRail" class="mini-block-rail"></div>
+              <div id="miniContentWrap" class="mini-content-wrap">
+                <div id="miniContent" class="mini-content"></div>
+              </div>
+              <div id="miniOverlay" class="mini-overlay"></div>
+            </div>
+          </div>
         </section>
 
         <section class="panel">
